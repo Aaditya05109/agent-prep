@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgentPrep — AI Study Agent for Students</title>
+<meta name="description" content="AgentPrep is your personal AI agent that helps you prep for exams. Flashcards, quizzes, full test papers and written practice — instantly from your notes."/>
+<meta name="keywords" content="AI study tool, exam prep, flashcards, quiz generator, test paper, student AI, AgentPrep"/>
+<meta property="og:title" content="AgentPrep — Your AI Exam Prep Agent"/>
+<meta property="og:description" content="Paste your notes. Your AI agent builds flashcards, quizzes and test papers instantly."/>
+<meta name="robots" content="index, follow"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#08090d;--surface:#0f1117;--card:#13151e;--border:#1e2130;--accent:#4f6ef7;--accent2:#7c5ef7;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--white:#eef0f8;--muted:#56587a;--muted2:#1a1d2e}
+body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;min-height:100vh}
+nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid var(--border);background:rgba(8,9,13,0.97);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:.5rem}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:3px;cursor:pointer}.logo span{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.nav-tag{background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:.25rem .7rem}
+.nav-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.4rem .9rem;font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer;transition:all .18s}
+.nav-btn:hover,.nav-btn.active{border-color:var(--accent);color:var(--accent);background:#0d1020}
+.nav-user{font-size:.75rem;color:var(--muted);display:none}
+.page{display:none}.page.show{display:block}
+
+/* AUTH PAGE */
+.auth-wrap{max-width:420px;margin:4rem auto;padding:2rem;text-align:center}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:3px;margin-bottom:.3rem}.auth-logo span{color:var(--accent)}
+.auth-sub{color:var(--muted);font-size:.85rem;margin-bottom:2rem;line-height:1.6}
+.auth-tabs{display:flex;margin-bottom:1.5rem;border:1px solid var(--border)}
+.auth-tab{flex:1;background:transparent;border:none;color:var(--muted);padding:.7rem;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .18s}
+.auth-tab.active{background:var(--accent);color:#fff}
+.auth-field{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.75rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;margin-bottom:.8rem;transition:border-color .2s}
+.auth-field:focus{border-color:var(--accent)}
+.auth-btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;padding:.85rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:.8rem;transition:opacity .2s}
+.auth-btn:hover{opacity:.88}
+.auth-divider{display:flex;align-items:center;gap:.8rem;margin:.8rem 0;color:var(--muted);font-size:.75rem}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.google-btn{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.75rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.6rem;transition:all .18s}
+.google-btn:hover{border-color:var(--accent)}
+.auth-error{color:var(--red);font-size:.78rem;margin-bottom:.6rem;display:none}
+.auth-success{color:var(--green);font-size:.78rem;margin-bottom:.6rem;display:none}
+
+/* HERO */
+.hero{padding:2.5rem 2rem 2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2rem}
+.hero-left{flex:1;min-width:260px}
+.hero-tag-pill{display:inline-block;background:var(--muted2);border:1px solid var(--border);color:var(--accent);font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:.3rem .9rem;margin-bottom:1rem}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.8rem,7vw,5rem);letter-spacing:2px;line-height:.95;margin-bottom:.8rem}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{color:var(--muted);font-size:.95rem;max-width:420px;line-height:1.7;margin-bottom:1.5rem}
+.hero-btns{display:flex;gap:.8rem;flex-wrap:wrap}
+.hero-right{flex-shrink:0}
+
+/* PRICING BANNER */
+.pricing-banner{background:linear-gradient(135deg,#0d1020,#12102a);border:1px solid #2a2f55;padding:1.2rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin:1.5rem 2rem}
+.pricing-left .price{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--accent);line-height:1}
+.pricing-left .price-sub{font-size:.72rem;color:var(--muted)}
+.pricing-features{display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
+.pricing-features span{display:flex;align-items:center;gap:.3rem}
+.pricing-features span::before{content:'✓';color:var(--green)}
+.upgrade-btn{background:var(--accent);border:none;color:#fff;padding:.7rem 1.6rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;transition:opacity .2s;white-space:nowrap}
+.upgrade-btn:hover{opacity:.85}
+
+/* DISCLAIMER */
+.disclaimer{background:#1a1520;border:1px solid #3a2545;padding:.7rem 1.2rem;font-size:.73rem;color:#c084fc;line-height:1.5;margin:1rem 2rem;display:flex;align-items:flex-start;gap:.6rem}
+
+/* DASHBOARD */
+.dash-wrap{max-width:900px;margin:0 auto;padding:2rem}
+.dash-search{display:flex;gap:0;margin-bottom:2rem}
+.dash-search input{flex:1;background:var(--surface);border:1px solid var(--border);border-right:none;color:var(--white);padding:.75rem 1.2rem;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s}
+.dash-search input:focus{border-color:var(--accent)}
+.dash-search input::placeholder{color:var(--muted)}
+.dash-search-btn{background:var(--accent);border:none;color:#fff;padding:.75rem 1.4rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1px;background:var(--border);margin-bottom:2rem}
+.stat-card{background:var(--card);padding:1.4rem;text-align:center}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent);line-height:1}
+.stat-label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:.3rem}
+.dash-section-title{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.clear-all{background:transparent;border:none;color:var(--red);font-size:.72rem;cursor:pointer;font-family:'DM Sans',sans-serif;opacity:.7}
+.clear-all:hover{opacity:1}
+.history-list{display:flex;flex-direction:column;gap:.6rem}
+.history-item{background:var(--card);border:1px solid var(--border);padding:1.1rem 1.3rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;cursor:pointer;transition:all .18s;flex-wrap:wrap}
+.history-item:hover{border-color:var(--accent);background:#0d1020}
+.history-left{display:flex;align-items:center;gap:1rem;flex:1;min-width:0}
+.history-icon{font-size:1.4rem;flex-shrink:0}
+.history-info{min-width:0}
+.history-topic{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.2rem}
+.history-meta{font-size:.72rem;color:var(--muted)}
+.history-right{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.history-badge{font-size:.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.18rem .55rem;background:var(--muted2);color:var(--muted)}
+.history-badge.flashcards{background:#0d1020;color:var(--accent)}
+.history-badge.quiz{background:#1a2540;color:#6fa8ff}
+.history-badge.written{background:#251a35;color:#c084fc}
+.history-badge.speed{background:#152a1e;color:#4ade80}
+.history-badge.spaced{background:#2d1e10;color:#fb923c}
+.history-badge.fulltest{background:#252010;color:#facc15}
+.del-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:.2rem;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+.empty-state{text-align:center;padding:3rem;color:var(--muted);font-size:.88rem}
+
+/* INPUT SECTION */
+.input-section{max-width:760px;margin:0 auto;padding:2rem}
+.gen-limit-bar{background:#1a1d10;border:1px solid #3a4010;color:var(--yellow);font-size:.75rem;padding:.6rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.drop-zone{border:2px dashed var(--border);background:var(--surface);padding:1.8rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:1.2rem;position:relative}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:#0d0f18}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:1.8rem;margin-bottom:.4rem}
+.drop-title{font-weight:600;font-size:.88rem;margin-bottom:.2rem}
+.drop-sub{color:var(--muted);font-size:.73rem}
+.drop-filename{color:var(--accent);font-size:.78rem;margin-top:.4rem;font-weight:500}
+.divider{display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.divider span{color:var(--muted);font-size:.72rem;letter-spacing:1px}
+textarea{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--white);padding:1rem 1.2rem;font-family:'DM Sans',sans-serif;font-size:.9rem;min-height:120px;resize:vertical;outline:none;transition:border-color .2s;line-height:1.6;margin-bottom:1rem}
+textarea::placeholder{color:var(--muted)}
+textarea:focus{border-color:var(--accent)}
+.subject-wrap{margin-bottom:1.2rem}
+.subject-wrap label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:.5rem}
+.subject-chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.subject-chip{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:.35rem .85rem;font-size:.75rem;font-weight:500;cursor:pointer;transition:all .18s;user-select:none}
+.subject-chip:hover{border-color:#3a3f55;color:var(--white)}
+.subject-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.mode-section-title{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:.8rem}
+.mode-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:1.5rem}
+.mode-card{background:var(--card);border:1.5px solid var(--border);padding:1rem .9rem;cursor:pointer;transition:all .18s;text-align:center}
+.mode-card:hover{background:#191d2a;border-color:#2a2f45}
+.mode-card.active{border-color:var(--accent);background:#0d1020}
+.mode-icon{font-size:1.4rem;margin-bottom:.4rem}
+.mode-name{font-weight:600;font-size:.8rem;margin-bottom:.2rem}
+.mode-desc{color:var(--muted);font-size:.67rem;line-height:1.4}
+.settings-block{display:none;background:var(--surface);border:1px solid var(--border);padding:1.4rem;margin-bottom:1.2rem}
+.settings-block.show{display:block}
+.settings-block h3{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid var(--border)}
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem}
+.ctrl-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem;margin-bottom:1rem}
+.ctrl label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:.4rem}
+select,input[type=number],input[type=text]{width:100%;background:var(--card);border:1px solid var(--border);color:var(--white);padding:.6rem .9rem;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color .2s}
+select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--accent)}
+select option{background:var(--card)}
+.chips-label{font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:.5rem}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.chip{background:var(--card);border:1px solid var(--border);color:var(--muted);padding:.32rem .8rem;font-size:.73rem;font-weight:500;cursor:pointer;transition:all .18s;user-select:none}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.sec-builder-header{display:grid;grid-template-columns:2fr 1fr 1fr 32px;gap:.5rem;margin-bottom:.4rem}
+.sec-builder-header span{font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.sec-row{display:grid;grid-template-columns:2fr 1fr 1fr 32px;gap:.5rem;align-items:center;margin-bottom:.4rem}
+.sec-row select,.sec-row input{padding:.45rem .6rem;font-size:.8rem;margin:0}
+.remove-sec{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1rem;transition:color .15s}
+.remove-sec:hover{color:var(--red)}
+.add-sec{background:transparent;border:1px dashed var(--border);color:var(--muted);padding:.5rem;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;width:100%;margin-top:.4rem}
+.add-sec:hover{border-color:var(--accent);color:var(--accent)}
+.gen-btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;padding:1rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;letter-spacing:.5px;cursor:pointer;transition:opacity .2s;text-transform:uppercase;margin-top:.4rem}
+.gen-btn:hover{opacity:.88}
+.gen-btn:disabled{opacity:.4;cursor:not-allowed}
+.loading{display:none;text-align:center;padding:2.5rem}
+.loading.show{display:block}
+.load-bar{width:100%;height:3px;background:var(--border);margin-bottom:1rem;overflow:hidden}
+.load-bar-inner{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:slide 1.8s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+.loading p{color:var(--muted);font-size:.85rem}
+
+/* UPGRADE MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);width:90%;max-width:440px;padding:2.5rem;position:relative;text-align:center}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer}
+.modal-close:hover{color:var(--white)}
+.modal h3{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:1px;margin-bottom:.5rem;color:var(--accent)}
+.modal p{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem;line-height:1.6}
+.modal-price{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--white);margin-bottom:.3rem}
+.modal-price-sub{color:var(--muted);font-size:.78rem;margin-bottom:1.5rem}
+.modal-features{text-align:left;margin-bottom:1.5rem}
+.modal-feature{display:flex;align-items:center;gap:.6rem;font-size:.82rem;margin-bottom:.5rem;color:var(--white)}
+.modal-feature::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+
+/* OUTPUT */
+#out{display:none}
+.out-disclaimer{background:#1a1520;border-bottom:1px solid #3a2545;padding:.6rem 2rem;font-size:.72rem;color:#c084fc;display:flex;align-items:center;gap:.5rem}
+.out-header{padding:1.2rem 2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem}
+.out-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:1px}
+.out-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.abtn{background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.45rem 1rem;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .18s}
+.abtn:hover{border-color:var(--accent);color:var(--accent)}
+.abtn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.abtn.pri:hover{opacity:.85;color:#fff}
+#fcMode{padding:2rem;display:none}#fcMode.on{display:block}
+.fc-top{max-width:600px;margin:0 auto 1.5rem;display:flex;align-items:center;gap:1rem}
+.fc-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.fc-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+.fc-count{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.fc-stats{display:flex;gap:1rem;font-size:.75rem}
+.fc-k{color:var(--green)}.fc-r{color:var(--red)}
+.card-wrap{max-width:600px;margin:0 auto;perspective:1200px}
+.flashcard{width:100%;min-height:260px;position:relative;cursor:pointer;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.flashcard.flipped{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem;border:1px solid var(--border);min-height:260px}
+.fc-front{background:var(--card)}.fc-back{background:var(--surface);transform:rotateY(180deg);border-color:var(--accent)}
+.fc-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:.8rem}
+.fc-text{font-size:1.05rem;font-weight:500;text-align:center;line-height:1.6}
+.fc-badge{font-size:.6rem;background:var(--muted2);color:var(--muted);padding:.18rem .55rem;margin-bottom:.6rem;letter-spacing:1px;text-transform:uppercase}
+.fc-hint{font-size:.7rem;color:var(--muted);margin-top:1rem}
+.fc-btns{display:flex;gap:.8rem;justify-content:center;margin-top:1.2rem;max-width:600px;margin-left:auto;margin-right:auto}
+.fc-btn{flex:1;border:none;padding:.72rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;transition:opacity .18s}
+.fc-btn:hover{opacity:.85}
+.fc-know{background:var(--green);color:#fff}.fc-rev{background:var(--red);color:#fff}.fc-flip{background:var(--surface);border:1px solid var(--border);color:var(--white)}
+.fc-nav{display:flex;gap:.5rem;justify-content:center;margin-top:.7rem}
+.fc-nav button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:.32rem .85rem;font-size:.76rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s}
+.fc-nav button:hover{border-color:var(--white);color:var(--white)}
+.fc-done{text-align:center;padding:2rem;display:none}.fc-done.show{display:block}
+#quizMode{padding:2rem;display:none}#quizMode.on{display:block}
+.test-header-bar{max-width:720px;margin:0 auto 1.5rem;background:var(--card);border:1px solid var(--border);padding:1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem}
+.test-meta{font-size:.78rem;color:var(--muted)}.test-meta strong{color:var(--white)}
+.timer{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--accent);letter-spacing:1px}
+.section-divider{max-width:720px;margin:1.5rem auto .8rem;display:flex;align-items:center;gap:.8rem}
+.section-divider-label{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--accent);white-space:nowrap}
+.section-divider-line{flex:1;height:1px;background:var(--border)}
+.section-meta{font-size:.72rem;color:var(--muted);white-space:nowrap}
+.qcard{background:var(--card);border:1px solid var(--border);padding:1.5rem;margin-bottom:.8rem;max-width:720px;margin-left:auto;margin-right:auto}
+.qnum{font-size:.67rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:.4rem;display:flex;justify-content:space-between}
+.qtext{font-size:.93rem;font-weight:500;line-height:1.6;margin-bottom:.9rem}
+.qtag{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.17rem .52rem;margin-bottom:.6rem}
+.tag-mcq{background:#1a2540;color:#6fa8ff}.tag-tf{background:#152a1e;color:#4ade80}.tag-sa{background:#251a35;color:#c084fc}.tag-la{background:#2d1e10;color:#fb923c}.tag-fb{background:#252010;color:#facc15}
+.mcq-opts{display:flex;flex-direction:column;gap:.4rem}
+.mcq-opt{background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.6rem 1rem;font-family:'DM Sans',sans-serif;font-size:.86rem;cursor:pointer;transition:all .18s;text-align:left}
+.mcq-opt:hover:not(:disabled){border-color:var(--accent)}
+.mcq-opt.correct{background:#0f2010;border-color:var(--green);color:var(--green)}
+.mcq-opt.wrong{background:#200f0f;border-color:var(--red);color:var(--red)}
+.tf-row{display:flex;gap:.7rem}
+.tf-opt{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.6rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.86rem;cursor:pointer;transition:all .18s}
+.tf-opt:hover:not(:disabled){border-color:var(--accent)}
+.tf-opt.correct{background:#0f2010;border-color:var(--green);color:var(--green)}
+.tf-opt.wrong{background:#200f0f;border-color:var(--red);color:var(--red)}
+.written{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.75rem 1rem;font-family:'DM Sans',sans-serif;font-size:.86rem;resize:vertical;min-height:75px;outline:none;line-height:1.6;transition:border-color .2s}
+.written:focus{border-color:var(--accent)}.written.lg{min-height:130px}
+.fill-blank{background:transparent;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:.93rem;padding:.12rem .35rem;outline:none;min-width:85px;text-align:center}
+.quiz-footer{max-width:720px;margin:1.2rem auto 2rem}
+.submit-btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;padding:.9rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.92rem;cursor:pointer;transition:opacity .2s}
+.submit-btn:hover{opacity:.85}
+.results{max-width:720px;margin:0 auto;background:var(--card);border:1px solid var(--border);padding:2.5rem;text-align:center;display:none}
+.results.show{display:block}
+.res-score{font-family:'Bebas Neue',sans-serif;font-size:5rem;line-height:1;color:var(--accent)}
+.res-label{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem}
+.res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:1.5rem}
+.res-item{background:var(--surface);padding:.8rem}
+.res-num{font-family:'Bebas Neue',sans-serif;font-size:2rem}
+.res-sub{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+#writtenMode{padding:2rem;display:none}#writtenMode.on{display:block}
+.w-review{max-width:720px;margin:1rem auto;background:var(--card);border:1px solid var(--border);padding:1.5rem;display:none}
+.w-review.show{display:block}
+.w-q{font-size:.88rem;font-weight:600;margin-bottom:.6rem}
+.w-a{font-size:.82rem;color:var(--muted);background:var(--surface);padding:.75rem;border-left:2px solid var(--accent);line-height:1.6;margin-bottom:.4rem}
+.w-ideal{font-size:.78rem;color:var(--green);background:#0f2010;padding:.55rem;border-left:2px solid var(--green);line-height:1.5}
+#spacedMode{padding:2rem;display:none}#spacedMode.on{display:block}
+#speedMode{padding:2rem;display:none}#speedMode.on{display:block}
+.speed-hud{max-width:600px;margin:0 auto 1.2rem;display:flex;justify-content:space-between;align-items:center}
+.speed-timer{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:var(--accent)}
+.speed-score{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--green)}
+.speed-card{max-width:600px;margin:0 auto;background:var(--card);border:1px solid var(--border);padding:2rem;text-align:center;min-height:130px;display:flex;align-items:center;justify-content:center}
+.speed-q{font-size:1.05rem;font-weight:500;line-height:1.6}
+.speed-input-row{max-width:600px;margin:.8rem auto 0;display:flex;gap:.6rem}
+.speed-input{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.7rem 1rem;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s}
+.speed-input:focus{border-color:var(--accent)}
+.speed-submit{background:var(--accent);border:none;color:#fff;padding:.7rem 1.4rem;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer}
+.speed-feedback{max-width:600px;margin:.5rem auto;text-align:center;font-size:.85rem;min-height:1.2rem}
+.speed-feedback.correct{color:var(--green)}.speed-feedback.wrong{color:var(--red)}
+.spaced-info{max-width:600px;margin:0 auto 1.5rem;background:var(--card);border:1px solid var(--border);padding:1.2rem;font-size:.82rem;color:var(--muted);line-height:1.6}
+.spaced-info strong{color:var(--white)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" onclick="goHome()">AGENT<span>PREP</span></div>
+  <div class="nav-right">
+    <div class="nav-tag">AI Powered</div>
+    <span class="nav-user" id="navUser"></span>
+    <button class="nav-btn active" id="navHome" onclick="showPage('home')">🏠 Home</button>
+    <button class="nav-btn" id="navDash" onclick="showPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-btn" id="navNew" onclick="showPage('new')">+ New Prep</button>
+    <button class="nav-btn" id="navAuth" onclick="showPage('auth')">Sign In</button>
+    <button class="nav-btn" id="navLogout" style="display:none" onclick="signOut()">Sign Out</button>
+  </div>
+</nav>
+
+<!-- AUTH PAGE -->
+<div class="page" id="pageAuth">
+  <div class="auth-wrap">
+    <div class="auth-logo">AGENT<span>PREP</span></div>
+    <div class="auth-sub">Your personal AI agent for exam prep. Sign up free — 2 prep sessions included.</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabSignin" onclick="switchAuthTab('signin')">Sign In</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-success" id="authSuccess"></div>
+    <input class="auth-field" type="email" id="authEmail" placeholder="Email address"/>
+    <input class="auth-field" type="password" id="authPassword" placeholder="Password"/>
+    <input class="auth-field" type="text" id="authName" placeholder="Full name" style="display:none"/>
+    <button class="auth-btn" id="authSubmitBtn" onclick="handleAuth()">Sign In</button>
+    <div class="auth-divider">or</div>
+    <button class="google-btn" onclick="signInGoogle()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continue with Google
+    </button>
+  </div>
+</div>
+
+<!-- HOME PAGE -->
+<div class="page show" id="pageHome">
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-tag-pill">🎓 AI Exam Prep Agent</div>
+      <h1>Your Personal<br/><em>Prep Agent</em><br/>Is Ready</h1>
+      <p>Paste your notes. AgentPrep builds flashcards, quizzes, full test papers and more — instantly. Your AI agent does the heavy lifting so you can focus on learning.</p>
+      <div class="hero-btns">
+        <button class="gen-btn" style="max-width:180px;margin:0" onclick="handleStartStudying()">⚡ Start Prepping</button>
+        <button class="abtn" onclick="showPage('dashboard')">📊 My Progress</button>
+      </div>
+    </div>
+    <div class="hero-right">
+      <canvas id="mascotCanvas" width="180" height="220" style="image-rendering:pixelated"></canvas>
+    </div>
+  </div>
+
+  <div class="pricing-banner">
+    <div class="pricing-left">
+      <div class="price">₹199<span style="font-size:1rem;color:var(--muted)">/mo</span></div>
+      <div class="price-sub">Billed annually — ₹2,388/year</div>
+    </div>
+    <div class="pricing-features">
+      <span>Unlimited prep sessions</span>
+      <span>All 6 study modes</span>
+      <span>Cloud history</span>
+      <span>AI written review</span>
+    </div>
+    <button class="upgrade-btn" onclick="openUpgradeModal()">Upgrade to Pro</button>
+  </div>
+
+  <div class="disclaimer">
+    <span>⚠️</span>
+    <span>AI-generated content may contain errors. Always verify against your textbook or teacher before using for exams.</span>
+  </div>
+
+  <div style="max-width:760px;margin:1rem auto;padding:0 2rem">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)">
+      <div style="background:var(--card);padding:1.5rem;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent)" id="homeTotal">0</div><div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Sessions</div></div>
+      <div style="background:var(--card);padding:1.5rem;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent)" id="homeCards">0</div><div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Cards Made</div></div>
+      <div style="background:var(--card);padding:1.5rem;text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent)" id="homePlan">Free</div><div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Current Plan</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="pageDashboard">
+  <div class="dash-wrap">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="dash-search">
+      <input type="text" id="searchInput" placeholder="Search your prep sessions..." oninput="searchHistory()"/>
+      <button class="dash-search-btn" onclick="searchHistory()">Search</button>
+    </div>
+    <div class="dash-section-title"><span>Recent Sessions</span><button class="clear-all" onclick="clearAll()">Clear All</button></div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<!-- NEW PREP SESSION -->
+<div class="page" id="pageNew">
+  <div class="input-section">
+    <div class="gen-limit-bar" id="genLimitBar" style="display:none">
+      <span>⚡ Free plan: <strong id="genLeft">2</strong> prep sessions remaining</span>
+      <button class="upgrade-btn" style="padding:.4rem .9rem;font-size:.72rem" onclick="openUpgradeModal()">Upgrade</button>
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".txt,.pdf,.doc,.docx,.png,.jpg"/>
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Drop a file here</div>
+      <div class="drop-sub">TXT, PDF, Word, Images</div>
+      <div class="drop-filename" id="fileName"></div>
+    </div>
+    <div class="divider"><span>OR</span></div>
+    <textarea id="notesInput" placeholder="Paste your notes, textbook content, or any study material here..."></textarea>
+    <div class="subject-wrap">
+      <label>Select Subject</label>
+      <div class="subject-chips">
+        <div class="subject-chip active" data-subject="General">General</div>
+        <div class="subject-chip" data-subject="Mathematics">Mathematics</div>
+        <div class="subject-chip" data-subject="Science">Science</div>
+        <div class="subject-chip" data-subject="Biology">Biology</div>
+        <div class="subject-chip" data-subject="Chemistry">Chemistry</div>
+        <div class="subject-chip" data-subject="Physics">Physics</div>
+        <div class="subject-chip" data-subject="History">History</div>
+        <div class="subject-chip" data-subject="Geography">Geography</div>
+        <div class="subject-chip" data-subject="English">English</div>
+        <div class="subject-chip" data-subject="Economics">Economics</div>
+        <div class="subject-chip" data-subject="Computer Science">Computer Science</div>
+        <div class="subject-chip" data-subject="Business Studies">Business Studies</div>
+      </div>
+    </div>
+    <div class="mode-section-title">Choose your prep mode</div>
+    <div class="mode-grid">
+      <div class="mode-card active" data-mode="flashcards" onclick="pickMode('flashcards',this)"><div class="mode-icon">🃏</div><div class="mode-name">Flashcards</div><div class="mode-desc">Flip & mark cards</div></div>
+      <div class="mode-card" data-mode="fulltest" onclick="pickMode('fulltest',this)"><div class="mode-icon">📋</div><div class="mode-name">Full Test</div><div class="mode-desc">Custom sections + timer</div></div>
+      <div class="mode-card" data-mode="quiz" onclick="pickMode('quiz',this)"><div class="mode-icon">⚡</div><div class="mode-name">Quick Quiz</div><div class="mode-desc">Fast mixed questions</div></div>
+      <div class="mode-card" data-mode="written" onclick="pickMode('written',this)"><div class="mode-icon">✍️</div><div class="mode-name">Written</div><div class="mode-desc">Long & short answer</div></div>
+      <div class="mode-card" data-mode="speed" onclick="pickMode('speed',this)"><div class="mode-icon">🏎️</div><div class="mode-name">Speed Round</div><div class="mode-desc">Race the clock</div></div>
+      <div class="mode-card" data-mode="spaced" onclick="pickMode('spaced',this)"><div class="mode-icon">🧠</div><div class="mode-name">Spaced Review</div><div class="mode-desc">Smart repetition</div></div>
+    </div>
+    <div class="settings-block show" id="set-flashcards">
+      <h3>Flashcard Settings</h3>
+      <div class="ctrl-grid">
+        <div class="ctrl"><label>Number of Cards</label><input type="number" id="fc-num" value="10" min="3" max="60"/></div>
+        <div class="ctrl"><label>Difficulty</label><select id="fc-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="mixed">Mixed</option></select></div>
+      </div>
+      <div class="chips-label">Card Types</div>
+      <div class="chips">
+        <div class="chip on" data-type="term">Term → Definition</div>
+        <div class="chip on" data-type="qa">Q & A</div>
+        <div class="chip on" data-type="fill">Fill in the Blank</div>
+        <div class="chip on" data-type="tf">True / False</div>
+        <div class="chip on" data-type="concept">Concept Summary</div>
+      </div>
+    </div>
+    <div class="settings-block" id="set-fulltest">
+      <h3>Test Builder</h3>
+      <div class="ctrl-grid-3">
+        <div class="ctrl"><label>Duration (mins)</label><input type="number" id="ft-duration" value="60" min="10" max="180"/></div>
+        <div class="ctrl"><label>Total Marks</label><input type="number" id="ft-marks" value="50" min="10" max="200"/></div>
+        <div class="ctrl"><label>Difficulty</label><select id="ft-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="mixed">Mixed</option></select></div>
+      </div>
+      <div class="sec-builder-header"><span>Section Type</span><span>Questions</span><span>Marks Each</span><span></span></div>
+      <div id="secRows">
+        <div class="sec-row"><select class="sec-type"><option value="mcq">Multiple Choice</option><option value="tf">True / False</option><option value="short">Short Answer</option><option value="long">Long Answer</option><option value="fill">Fill in the Blank</option></select><input type="number" class="sec-count" value="5" min="1" max="30"/><input type="number" class="sec-marks" value="1" min="1" max="20"/><button class="remove-sec" onclick="removeSec(this)">✕</button></div>
+        <div class="sec-row"><select class="sec-type"><option value="mcq">Multiple Choice</option><option value="tf">True / False</option><option value="short" selected>Short Answer</option><option value="long">Long Answer</option><option value="fill">Fill in the Blank</option></select><input type="number" class="sec-count" value="3" min="1" max="30"/><input type="number" class="sec-marks" value="3" min="1" max="20"/><button class="remove-sec" onclick="removeSec(this)">✕</button></div>
+      </div>
+      <button class="add-sec" onclick="addSec()">+ Add Section</button>
+    </div>
+    <div class="settings-block" id="set-quiz">
+      <h3>Quick Quiz Settings</h3>
+      <div class="ctrl-grid">
+        <div class="ctrl"><label>Number of Questions</label><input type="number" id="qq-num" value="10" min="3" max="40"/></div>
+        <div class="ctrl"><label>Difficulty</label><select id="qq-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="mixed">Mixed</option></select></div>
+      </div>
+      <div class="chips-label">Question Types</div>
+      <div class="chips">
+        <div class="chip on" data-qt="mcq">Multiple Choice</div>
+        <div class="chip on" data-qt="tf">True / False</div>
+        <div class="chip on" data-qt="short">Short Answer</div>
+        <div class="chip on" data-qt="fill">Fill in the Blank</div>
+      </div>
+    </div>
+    <div class="settings-block" id="set-written">
+      <h3>Written Mode Settings</h3>
+      <div class="ctrl-grid">
+        <div class="ctrl"><label>Number of Questions</label><input type="number" id="wr-num" value="8" min="2" max="20"/></div>
+        <div class="ctrl"><label>Difficulty</label><select id="wr-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+      </div>
+      <div class="chips-label">Question Types</div>
+      <div class="chips">
+        <div class="chip on" data-wt="short">Short Answer</div>
+        <div class="chip on" data-wt="long">Long Answer</div>
+        <div class="chip on" data-wt="analytical">Analytical</div>
+        <div class="chip on" data-wt="opinion">Opinion / Discuss</div>
+      </div>
+    </div>
+    <div class="settings-block" id="set-speed">
+      <h3>Speed Round Settings</h3>
+      <div class="ctrl-grid">
+        <div class="ctrl"><label>Time Limit (seconds)</label><input type="number" id="sp-time" value="60" min="20" max="300"/></div>
+        <div class="ctrl"><label>Difficulty</label><select id="sp-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+      </div>
+    </div>
+    <div class="settings-block" id="set-spaced">
+      <h3>Spaced Review Settings</h3>
+      <div class="ctrl-grid">
+        <div class="ctrl"><label>Cards in Deck</label><input type="number" id="sr-num" value="15" min="5" max="50"/></div>
+        <div class="ctrl"><label>Difficulty</label><select id="sr-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+      </div>
+    </div>
+    <button class="gen-btn" id="genBtn" onclick="generate()">⚡ Brief My Agent</button>
+    <div class="loading" id="loading"><div class="load-bar"><div class="load-bar-inner"></div></div><p id="loadMsg">Agent is prepping your material...</p></div>
+  </div>
+</div>
+
+<!-- OUTPUT -->
+<div id="out">
+  <div class="out-disclaimer">⚠️ AI-generated content — verify all answers against your textbook before using for exams.</div>
+  <div class="out-header">
+    <div class="out-title" id="outTitle">Ready</div>
+    <div class="out-actions">
+      <button class="abtn" onclick="resetAll()">↩ New Prep</button>
+      <button class="abtn" onclick="downloadCards()">⬇ Download</button>
+      <button class="abtn pri" id="shuffleBtn" onclick="shuffleCards()">⇄ Shuffle</button>
+    </div>
+  </div>
+  <div id="fcMode">
+    <div class="fc-top"><div class="fc-bar"><div class="fc-fill" id="fcFill"></div></div><div class="fc-count" id="fcCount">1/10</div><div class="fc-stats"><span class="fc-k" id="fcKnow">✓ 0</span><span class="fc-r" id="fcRev">↺ 0</span></div></div>
+    <div class="card-wrap"><div class="flashcard" id="theCard" onclick="flipCard()"><div class="fc-face fc-front"><div class="fc-badge" id="fcBadge">TERM</div><div class="fc-lbl">FRONT</div><div class="fc-text" id="fcFront"></div><div class="fc-hint">Click to flip</div></div><div class="fc-face fc-back"><div class="fc-lbl">BACK</div><div class="fc-text" id="fcBack"></div></div></div></div>
+    <div class="fc-btns"><button class="fc-btn fc-rev" onclick="markCard(false)">↺ Review Again</button><button class="fc-btn fc-flip" onclick="flipCard()">↕ Flip</button><button class="fc-btn fc-know" onclick="markCard(true)">✓ Got It</button></div>
+    <div class="fc-nav"><button onclick="navCard(-1)">← Prev</button><button onclick="navCard(1)">Next →</button></div>
+    <div class="fc-done" id="fcDone"><div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent);margin-bottom:.5rem">Mission Complete!</div><div style="color:var(--muted);font-size:.85rem;margin-bottom:1.2rem" id="fcSummary"></div><button class="gen-btn" style="max-width:280px;margin:0 auto;display:block" onclick="restartDeck()">Restart Deck</button></div>
+  </div>
+  <div id="quizMode">
+    <div class="test-header-bar" id="testHeaderBar" style="display:none"><div class="test-meta">Duration: <strong id="testDurLabel">60 min</strong> &nbsp;|&nbsp; Marks: <strong id="testMarksLabel">50</strong></div><div class="timer" id="testTimer">60:00</div></div>
+    <div id="quizQuestions"></div>
+    <div class="quiz-footer"><button class="submit-btn" onclick="submitQuiz()">Submit & See Results</button></div>
+    <div class="results" id="quizResults"><div class="res-score" id="resScore">0%</div><div class="res-label" id="resLabel"></div><div class="res-grid"><div class="res-item"><div class="res-num" id="resCorrect" style="color:var(--green)">0</div><div class="res-sub">Correct</div></div><div class="res-item"><div class="res-num" id="resWrong" style="color:var(--red)">0</div><div class="res-sub">Wrong</div></div><div class="res-item"><div class="res-num" id="resSkipped" style="color:var(--yellow)">0</div><div class="res-sub">Skipped</div></div></div><button class="gen-btn" style="max-width:240px;margin:0 auto;display:block" onclick="resetAll()">New Mission</button></div>
+  </div>
+  <div id="writtenMode">
+    <div id="writtenQuestions"></div>
+    <div class="quiz-footer"><button class="submit-btn" onclick="submitWritten()">Submit for AI Review</button></div>
+    <div class="w-review" id="writtenResults"></div>
+  </div>
+  <div id="speedMode">
+    <div class="speed-hud"><div><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Time Left</div><div class="speed-timer" id="speedTimer">60</div></div><div style="text-align:center"><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Score</div><div class="speed-score" id="speedScore">0</div></div><div style="text-align:right"><div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Question</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--white)" id="speedQNum">1</div></div></div>
+    <div class="speed-card"><div class="speed-q" id="speedQ">Loading...</div></div>
+    <div class="speed-input-row"><input class="speed-input" id="speedInput" type="text" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')checkSpeed()"/><button class="speed-submit" onclick="checkSpeed()">→</button></div>
+    <div class="speed-feedback" id="speedFeedback"></div>
+    <div style="text-align:center;margin-top:.8rem"><button class="abtn" onclick="skipSpeed()">Skip →</button></div>
+  </div>
+  <div id="spacedMode">
+    <div class="spaced-info">Cards you miss come back <strong>sooner</strong>. Cards you know get spaced <strong>further apart</strong>.</div>
+    <div class="fc-top"><div class="fc-bar"><div class="fc-fill" id="srFill"></div></div><div class="fc-count" id="srCount">0 remaining</div></div>
+    <div class="card-wrap"><div class="flashcard" id="srCard" onclick="flipSpaced()"><div class="fc-face fc-front"><div class="fc-badge" id="srBadge">CARD</div><div class="fc-lbl">FRONT</div><div class="fc-text" id="srFront"></div><div class="fc-hint">Click to reveal</div></div><div class="fc-face fc-back"><div class="fc-lbl">ANSWER</div><div class="fc-text" id="srBack"></div></div></div></div>
+    <div class="fc-btns"><button class="fc-btn fc-rev" onclick="spacedMark(false)">✗ Missed It</button><button class="fc-btn fc-flip" onclick="flipSpaced()">↕ Flip</button><button class="fc-btn fc-know" onclick="spacedMark(true)">✓ Got It</button></div>
+    <div class="fc-done" id="srDone"><div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent);margin-bottom:.5rem">All Mastered!</div><div style="color:var(--muted);font-size:.85rem" id="srSummary"></div></div>
+  </div>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="upgradeModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeUpgradeModal()">✕</button>
+    <h3>Upgrade to Pro</h3>
+    <p>Get unlimited prep sessions, all 6 modes, and cloud history synced across all your devices.</p>
+    <div class="modal-price">₹2,388</div>
+    <div class="modal-price-sub">per year — that's ₹199/month</div>
+    <div class="modal-features">
+      <div class="modal-feature">Unlimited prep sessions</div>
+      <div class="modal-feature">All 6 study modes</div>
+      <div class="modal-feature">Cloud history on all devices</div>
+      <div class="modal-feature">AI written answer review</div>
+      <div class="modal-feature">Full test paper builder</div>
+      <div class="modal-feature">Priority support</div>
+    </div>
+    <button class="upgrade-btn" style="width:100%;padding:.9rem;font-size:.95rem" onclick="handlePayment()">Pay ₹2,388 with Razorpay</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG — REPLACE THESE WHEN DEPLOYING ──
+const SUPABASE_URL = 'https://sgyyyotletzrhlivhzxu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNneXl5b3RsZXR6cmhsaXZoenh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNTU0MDAsImV4cCI6MjA5MTYzMTQwMH0.5h_Wkl2xuqz8mUaOTQU26TJiPJC7R4Pl7xSpgYd8U8o';
+const BACKEND_URL = 'https://agentprep.xyz'; // e.g. https://agentprep.vercel.app
+const RAZORPAY_KEY_ID = 'RAZORPAY_KEY_PENDING';
+
+// ── SUPABASE INIT ──
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let userProfile = null;
+let cards=[],curIdx=0,known=0,review=0,isFlipped=false;
+let quizData=[],writtenData=[],speedData=[];
+let srDeck=[],srIdx=0,srTotal=0;
+let speedIdx=0,speedScore=0,speedTimerInterval=null,timerInterval=null;
+let curMode='flashcards',fileText='',selectedSubject='General';
+
+// ── PIXEL ART MASCOT ──
+function drawMascot(){
+  const c=document.getElementById('mascotCanvas');if(!c)return;
+  const ctx=c.getContext('2d');const S=8;
+  const px=(x,y,col)=>{ctx.fillStyle=col;ctx.fillRect(x*S,y*S,S,S);};
+  ctx.clearRect(0,0,c.width,c.height);
+  const BK='#0a0a14',SK='#f5c89a',SH='#e0a87a',BL='#1e3a5f',
+        LB='#2a5298',AC='#4f6ef7',YL='#f59e0b',WH='#eef0f8',
+        GR='#56587a',RD='#ef4444',GN='#22c55e';
+  const grd=ctx.createRadialGradient(90,110,10,90,110,80);
+  grd.addColorStop(0,'rgba(79,110,247,0.12)');grd.addColorStop(1,'rgba(79,110,247,0)');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,180,220);
+  for(let x=6;x<=9;x++){px(x,19,BL);px(x,20,BL);}
+  for(let x=12;x<=15;x++){px(x,19,BL);px(x,20,BL);}
+  for(let x=5;x<=9;x++) px(x,21,BK);
+  for(let x=12;x<=16;x++) px(x,21,BK);
+  for(let y=12;y<=18;y++) for(let x=6;x<=15;x++) px(x,y,BL);
+  px(8,12,WH);px(9,12,WH);px(12,12,WH);px(13,12,WH);
+  px(8,13,WH);px(13,13,WH);
+  px(10,13,RD);px(11,13,RD);px(10,14,RD);px(11,14,RD);px(10,15,RD);px(11,15,RD);px(10,16,RD);
+  px(14,13,WH);px(14,14,WH);
+  for(let y=12;y<=17;y++){px(5,y,BL);px(16,y,BL);}
+  px(5,18,SK);px(4,17,SK);px(16,18,SK);px(17,17,SK);
+  for(let y=16;y<=19;y++) for(let x=1;x<=4;x++) px(x,y,GN);
+  px(2,16,WH);px(3,16,WH);px(2,17,WH);px(3,17,WH);
+  for(let y=16;y<=19;y++) for(let x=17;x<=20;x++) px(x,y,BK);
+  px(18,17,AC);px(19,17,AC);px(18,18,AC);
+  px(9,11,SK);px(10,11,SK);px(11,11,SK);px(12,11,SK);
+  for(let y=6;y<=10;y++) for(let x=8;x<=13;x++) px(x,y,SK);
+  px(13,7,SH);px(13,8,SH);px(13,9,SH);px(8,9,SH);px(9,10,SH);px(10,10,SH);
+  for(let x=8;x<=13;x++){px(x,5,BK);px(x,6,BK);}
+  px(7,6,BK);px(7,7,BK);px(14,6,BK);px(10,5,GR);
+  for(let x=7;x<=10;x++) px(x,8,BK);
+  for(let x=11;x<=14;x++) px(x,8,BK);
+  px(8,8,AC);px(9,8,AC);px(12,8,AC);px(13,8,AC);
+  px(8,9,LB);px(9,9,LB);px(12,9,LB);px(13,9,LB);
+  px(8,9,WH);px(9,9,WH);px(12,9,WH);px(13,9,WH);
+  px(8,9,BK);px(12,9,BK);
+  px(10,9,SH);px(9,10,BK);px(11,10,BK);
+  for(let x=7;x<=14;x++){px(x,4,BK);px(x,3,BK);}
+  for(let x=6;x<=15;x++) px(x,5,BK);
+  px(11,2,YL);px(12,2,YL);px(13,2,YL);px(13,1,YL);px(14,1,YL);px(14,0,YL);
+  px(7,14,YL);px(7,15,YL);
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath();ctx.ellipse(90,175,50,8,0,0,Math.PI*2);ctx.fill();
+}
+
+// ── AUTH ──
+async function initAuth(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await setUser(session.user);}
+  sb.auth.onAuthStateChange(async(_,session)=>{
+    if(session){await setUser(session.user);}
+    else{clearUser();}
+  });
+}
+
+async function setUser(user){
+  currentUser=user;
+  document.getElementById('navUser').textContent=user.email?.split('@')[0];
+  document.getElementById('navUser').style.display='block';
+  document.getElementById('navAuth').style.display='none';
+  document.getElementById('navLogout').style.display='block';
+  const {data}=await sb.from('profiles').select('*').eq('id',user.id).single();
+  userProfile=data;
+  updateHomeStats();
+  updateGenLimitBar();
+}
+
+function clearUser(){
+  currentUser=null;userProfile=null;
+  document.getElementById('navUser').style.display='none';
+  document.getElementById('navAuth').style.display='block';
+  document.getElementById('navLogout').style.display='none';
+}
+
+function switchAuthTab(tab){
+  document.getElementById('tabSignin').classList.toggle('active',tab==='signin');
+  document.getElementById('tabSignup').classList.toggle('active',tab==='signup');
+  document.getElementById('authSubmitBtn').textContent=tab==='signin'?'Sign In':'Create Account';
+  document.getElementById('authName').style.display=tab==='signup'?'block':'none';
+  document.getElementById('authError').style.display='none';
+  document.getElementById('authSuccess').style.display='none';
+}
+
+async function handleAuth(){
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  const name=document.getElementById('authName').value.trim();
+  const isSignup=document.getElementById('tabSignup').classList.contains('active');
+  const errEl=document.getElementById('authError');
+  const sucEl=document.getElementById('authSuccess');
+  errEl.style.display='none';sucEl.style.display='none';
+  if(!email||!password){errEl.textContent='Please fill in all fields.';errEl.style.display='block';return;}
+  try{
+    if(isSignup){
+      const {error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});
+      if(error)throw error;
+      sucEl.textContent='Account created! Check your email to confirm.';sucEl.style.display='block';
+    }else{
+      const {error}=await sb.auth.signInWithPassword({email,password});
+      if(error)throw error;
+      showPage('home');
+    }
+  }catch(e){errEl.textContent=e.message;errEl.style.display='block';}
+}
+
+async function signInGoogle(){
+  await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href}});
+}
+
+async function signOut(){
+  await sb.auth.signOut();showPage('home');
+}
+
+// ── NAV ──
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('show'));
+  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('out').style.display='none';
+  const map={home:'pageHome',dashboard:'pageDashboard',new:'pageNew',auth:'pageAuth'};
+  const navMap={home:'navHome',dashboard:'navDash',new:'navNew',auth:'navAuth'};
+  if(map[p])document.getElementById(map[p]).classList.add('show');
+  if(navMap[p])document.getElementById(navMap[p]).classList.add('active');
+  if(p==='home')updateHomeStats();
+  if(p==='dashboard')renderDashboard();
+  if(p==='new')updateGenLimitBar();
+}
+function goHome(){showPage('home');}
+function handleStartStudying(){
+  if(!currentUser){showPage('auth');return;}
+  showPage('new');
+}
+
+function updateHomeStats(){
+  if(!userProfile)return;
+  document.getElementById('homeTotal').textContent=userProfile.generations_used||0;
+  document.getElementById('homeCards').textContent=userProfile.generations_used||0;
+  document.getElementById('homePlan').textContent=userProfile.plan==='pro'?'Pro 🔥':'Free';
+}
+
+function updateGenLimitBar(){
+  if(!userProfile)return;
+  const bar=document.getElementById('genLimitBar');
+  if(userProfile.plan==='pro'){bar.style.display='none';return;}
+  const used=userProfile.generations_used||0;
+  const left=Math.max(0,2-used);
+  document.getElementById('genLeft').textContent=left;
+  bar.style.display='flex';
+}
+
+// ── DASHBOARD ──
+async function renderDashboard(filter=''){
+  if(!currentUser){showPage('auth');return;}
+  const {data:sessions}=await sb.from('sessions').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const all=sessions||[];
+  const filtered=filter?all.filter(s=>s.topic?.toLowerCase().includes(filter.toLowerCase())||s.mode?.toLowerCase().includes(filter.toLowerCase())):all;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card"><div class="stat-num">${all.length}</div><div class="stat-label">Total Sessions</div></div>
+    <div class="stat-card"><div class="stat-num">${all.reduce((a,s)=>a+(s.cards_count||0),0)}</div><div class="stat-label">Cards & Questions</div></div>
+    <div class="stat-card"><div class="stat-num">${userProfile?.plan==='pro'?'Pro':'Free'}</div><div class="stat-label">Plan</div></div>
+    <div class="stat-card"><div class="stat-num">${userProfile?.generations_used||0}</div><div class="stat-label">Generations Used</div></div>`;
+  const icons={flashcards:'🃏',fulltest:'📋',quiz:'⚡',written:'✍️',speed:'🏎️',spaced:'🧠'};
+  if(!filtered.length){document.getElementById('historyList').innerHTML=`<div class="empty-state"><div>📭</div>${filter?'No sessions match.':'No sessions yet. Start prepping!'}</div>`;return;}
+  document.getElementById('historyList').innerHTML=filtered.map(s=>{
+    const d=new Date(s.created_at);const dateStr=d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    return `<div class="history-item" onclick="reloadSession('${s.id}')"><div class="history-left"><div class="history-icon">${icons[s.mode]||'📚'}</div><div class="history-info"><div class="history-topic">${s.topic||'Untitled'}</div><div class="history-meta">${dateStr} · ${s.cards_count||0} ${s.mode==='flashcards'?'cards':'questions'} · ${s.subject||'General'}</div></div></div><div class="history-right"><div class="history-badge ${s.mode}">${s.mode}</div><button class="del-btn" onclick="event.stopPropagation();deleteSession('${s.id}')">✕</button></div></div>`;
+  }).join('');
+}
+function searchHistory(){renderDashboard(document.getElementById('searchInput').value);}
+async function deleteSession(id){await sb.from('sessions').delete().eq('id',id);renderDashboard();}
+async function clearAll(){if(confirm('Delete all saved sessions?')){await sb.from('sessions').delete().eq('user_id',currentUser.id);renderDashboard();}}
+async function reloadSession(id){
+  const {data:s}=await sb.from('sessions').select('*').eq('id',id).single();
+  if(!s||!s.data)return;
+  if(s.mode==='flashcards'){cards=s.data;curIdx=0;known=0;review=0;showOutput('flashcards');}
+  else if(s.mode==='quiz'||s.mode==='fulltest'){quizData=s.data;showOutput(s.mode);}
+  else if(s.mode==='written'){writtenData=s.data;showOutput('written');}
+  else if(s.mode==='speed'){speedData=s.data;showOutput('speed',s.data.time||60);}
+  else if(s.mode==='spaced'){srDeck=s.data;srTotal=srDeck.length;showOutput('spaced');}
+}
+
+// ── FILE ──
+document.getElementById('fileInput').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  document.getElementById('fileName').textContent='📎 '+f.name;
+  fileText=f.type==='text/plain'?await f.text():'[File: '+f.name+']';
+});
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f){document.getElementById('fileInput').files=e.dataTransfer.files;document.getElementById('fileName').textContent='📎 '+f.name;}});
+
+// ── SUBJECT / MODE ──
+document.querySelectorAll('.subject-chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.subject-chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');selectedSubject=c.dataset.subject;}));
+function pickMode(mode,el){curMode=mode;document.querySelectorAll('.mode-card').forEach(c=>c.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.settings-block').forEach(b=>b.classList.remove('show'));const p=document.getElementById('set-'+mode);if(p)p.classList.add('show');document.getElementById('shuffleBtn').style.display=mode==='flashcards'?'':'none';}
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('on')));
+function getChips(sel){return [...document.querySelectorAll(sel+'.on')].map(c=>c.dataset.type||c.dataset.qt||c.dataset.wt)}
+function addSec(){const row=document.createElement('div');row.className='sec-row';row.innerHTML=`<select class="sec-type"><option value="mcq">Multiple Choice</option><option value="tf">True / False</option><option value="short">Short Answer</option><option value="long">Long Answer</option><option value="fill">Fill in the Blank</option></select><input type="number" class="sec-count" value="5" min="1" max="30"/><input type="number" class="sec-marks" value="2" min="1" max="20"/><button class="remove-sec" onclick="removeSec(this)">✕</button>`;document.getElementById('secRows').appendChild(row);}
+function removeSec(btn){if(document.querySelectorAll('.sec-row').length>1)btn.parentElement.remove();}
+function getSections(){return [...document.querySelectorAll('.sec-row')].map(r=>({type:r.querySelector('.sec-type').value,count:parseInt(r.querySelector('.sec-count').value)||5,marks:parseInt(r.querySelector('.sec-marks').value)||1}));}
+
+// ── BACKEND CALL ──
+async function callBackend(prompt){
+  if(!currentUser)throw new Error('Please sign in first.');
+  const res=await fetch(`${BACKEND_URL}/api/generate`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt,userId:currentUser.id})
+  });
+  const data=await res.json();
+  if(data.error==='limit_reached'){openUpgradeModal();throw new Error(data.message);}
+  if(data.error==='non_academic'){throw new Error('Please paste actual academic study material.');}
+  if(data.error)throw new Error(data.error);
+  if(userProfile)userProfile.generations_used=data.generationsUsed;
+  updateGenLimitBar();
+  return data.text;
+}
+
+function setLoading(msg){document.getElementById('loading').classList.add('show');document.getElementById('loadMsg').textContent=msg;document.getElementById('genBtn').disabled=true;}
+function clearLoading(){document.getElementById('loading').classList.remove('show');document.getElementById('genBtn').disabled=false;}
+
+async function saveSession(topic,mode,count,data){
+  if(!currentUser)return;
+  await sb.from('sessions').insert({user_id:currentUser.id,topic,subject:selectedSubject,mode,data,cards_count:count});
+}
+
+async function generate(){
+  if(!currentUser){alert('Please sign in first!');showPage('auth');return;}
+  const notes=document.getElementById('notesInput').value.trim()||fileText;
+  if(!notes){alert('Please paste notes or upload a file first!');return;}
+  const topicPreview=notes.slice(0,60)+(notes.length>60?'...':'');
+  const subjectCtx=`Subject: ${selectedSubject}.`;
+
+  if(curMode==='flashcards'){
+    const types=getChips('[data-type]');if(!types.length){alert('Select at least one card type!');return;}
+    const num=document.getElementById('fc-num').value,diff=document.getElementById('fc-diff').value;
+    setLoading('Agent is building your flashcards...');
+    const prompt=`${subjectCtx} Generate exactly ${num} flashcards at ${diff} difficulty from the academic content below. Use these types (cycle through): ${types.join(', ')}.
+term=front is term back is definition, qa=front is question back is answer, fill=front has _____ back is missing word, tf=front is True or False statement back is answer+explanation, concept=front is concept name back is 2-3 sentence summary.
+Return ONLY a valid JSON array: [{"type":"term","front":"...","back":"..."}]
+Content: ${notes.slice(0,4000)}`;
+    try{const raw=await callBackend(prompt);cards=JSON.parse(raw.replace(/```json|```/g,'').trim());curIdx=0;known=0;review=0;await saveSession(topicPreview,'flashcards',cards.length,cards);showOutput('flashcards');}
+    catch(e){if(e.message!==''&&!e.message.includes('limit'))alert('Error: '+e.message);}
+    clearLoading();
+  }else if(curMode==='fulltest'){
+    const sections=getSections(),dur=document.getElementById('ft-duration').value,totalMarks=document.getElementById('ft-marks').value,diff=document.getElementById('ft-diff').value;
+    setLoading('Agent is building your test paper...');
+    const secDesc=sections.map((s,i)=>`Section ${i+1}: ${s.count} ${s.type} questions, ${s.marks} mark each`).join('\n');
+    const prompt=`${subjectCtx} Generate a full academic test paper at ${diff} difficulty. Duration: ${dur} mins. Total marks: ${totalMarks}.
+Sections:\n${secDesc}
+mcq: 4 options one correct. tf: true/false with explanation. short: 2-3 sentences. long: full paragraph. fill: _____ in sentence.
+Return ONLY JSON: [{"section":1,"type":"mcq","question":"...","options":["A)...","B)...","C)...","D)..."],"answer":"A)...","marks":1}]
+Content: ${notes.slice(0,4000)}`;
+    try{const raw=await callBackend(prompt);quizData=JSON.parse(raw.replace(/```json|```/g,'').trim());await saveSession(topicPreview,'fulltest',quizData.length,quizData);showOutput('fulltest',dur,totalMarks);}
+    catch(e){if(!e.message.includes('limit'))alert('Error: '+e.message);}
+    clearLoading();
+  }else if(curMode==='quiz'){
+    const types=getChips('[data-qt]'),num=document.getElementById('qq-num').value,diff=document.getElementById('qq-diff').value;
+    setLoading('Agent is building your quiz...');
+    const prompt=`${subjectCtx} Generate ${num} quiz questions at ${diff} difficulty. Types: ${types.join(', ')}.
+Return ONLY JSON: [{"type":"mcq","question":"...","options":["A)...","B)...","C)...","D)..."],"answer":"A)...","marks":1}]
+Content: ${notes.slice(0,4000)}`;
+    try{const raw=await callBackend(prompt);quizData=JSON.parse(raw.replace(/```json|```/g,'').trim());await saveSession(topicPreview,'quiz',quizData.length,quizData);showOutput('quiz');}
+    catch(e){if(!e.message.includes('limit'))alert('Error: '+e.message);}
+    clearLoading();
+  }else if(curMode==='written'){
+    const types=getChips('[data-wt]'),num=document.getElementById('wr-num').value,diff=document.getElementById('wr-diff').value;
+    setLoading('Agent is generating written questions...');
+    const prompt=`${subjectCtx} Generate ${num} written answer questions at ${diff} difficulty. Types: ${types.join(', ')}.
+Return ONLY JSON: [{"type":"short","question":"...","ideal":"...","marks":3}]
+Content: ${notes.slice(0,4000)}`;
+    try{const raw=await callBackend(prompt);writtenData=JSON.parse(raw.replace(/```json|```/g,'').trim());await saveSession(topicPreview,'written',writtenData.length,writtenData);showOutput('written');}
+    catch(e){if(!e.message.includes('limit'))alert('Error: '+e.message);}
+    clearLoading();
+  }else if(curMode==='speed'){
+    const diff=document.getElementById('sp-diff').value,time=parseInt(document.getElementById('sp-time').value)||60;
+    setLoading('Agent is preparing your speed round...');
+    const prompt=`${subjectCtx} Generate 20 quick academic Q&A at ${diff} difficulty. Each answer must be 1-5 words max.
+Return ONLY JSON: [{"q":"...","a":"..."}]
+Content: ${notes.slice(0,3000)}`;
+    try{const raw=await callBackend(prompt);speedData=JSON.parse(raw.replace(/```json|```/g,'').trim());speedData.sort(()=>Math.random()-.5);await saveSession(topicPreview,'speed',speedData.length,speedData);showOutput('speed',time);}
+    catch(e){if(!e.message.includes('limit'))alert('Error: '+e.message);}
+    clearLoading();
+  }else if(curMode==='spaced'){
+    const num=document.getElementById('sr-num').value,diff=document.getElementById('sr-diff').value;
+    setLoading('Agent is building your spaced deck...');
+    const prompt=`${subjectCtx} Generate ${num} flashcards at ${diff} difficulty for spaced repetition.
+Return ONLY JSON: [{"front":"...","back":"...","type":"term"}]
+Content: ${notes.slice(0,4000)}`;
+    try{const raw=await callBackend(prompt);const base=JSON.parse(raw.replace(/```json|```/g,'').trim());srDeck=base.map(c=>({...c,interval:0,due:0,reps:0}));srTotal=srDeck.length;await saveSession(topicPreview,'spaced',srDeck.length,srDeck);showOutput('spaced');}
+    catch(e){if(!e.message.includes('limit'))alert('Error: '+e.message);}
+    clearLoading();
+  }
+}
+
+// ── PAYMENT ──
+function openUpgradeModal(){document.getElementById('upgradeModal').classList.add('open');}
+function closeUpgradeModal(){document.getElementById('upgradeModal').classList.remove('open');}
+
+async function handlePayment(){
+  if(!currentUser){closeUpgradeModal();showPage('auth');return;}
+  try{
+    const res=await fetch(`${BACKEND_URL}/api/create-order`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});
+    const order=await res.json();
+    if(order.error)throw new Error(order.error);
+    const options={
+      key:RAZORPAY_KEY_ID,order_id:order.orderId,amount:order.amount,currency:order.currency,
+      name:'AgentPrep',description:'Pro Plan — Annual Subscription',
+      prefill:{email:currentUser.email},
+      theme:{color:'#4f6ef7'},
+      handler:async function(response){
+        const verifyRes=await fetch(`${BACKEND_URL}/api/verify-payment`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...response,userId:currentUser.id})});
+        const result=await verifyRes.json();
+        if(result.success){
+          userProfile.plan='pro';
+          closeUpgradeModal();
+          updateHomeStats();
+          updateGenLimitBar();
+          alert('Welcome to AgentPrep Pro! 🎉 Unlimited prep sessions unlocked.');
+        }else{alert('Payment verification failed. Please contact support.');}
+      }
+    };
+    const rzp=new Razorpay(options);rzp.open();
+  }catch(e){alert('Could not initiate payment: '+e.message);}
+}
+
+// ── OUTPUT ──
+function showOutput(mode,extra1,extra2){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('show'));
+  document.getElementById('out').style.display='block';
+  ['fcMode','quizMode','writtenMode','speedMode','spacedMode'].forEach(id=>{const el=document.getElementById(id);el.style.display='none';el.classList.remove('on');});
+  if(mode==='flashcards'){document.getElementById('outTitle').textContent=cards.length+' Flashcards';document.getElementById('fcMode').style.display='block';document.getElementById('fcMode').classList.add('on');document.getElementById('shuffleBtn').style.display='';renderFlashcard();}
+  else if(mode==='fulltest'){const dur=parseInt(extra1)||60,marks=extra2||50;document.getElementById('outTitle').textContent='Full Test Paper';document.getElementById('quizMode').style.display='block';document.getElementById('quizMode').classList.add('on');document.getElementById('shuffleBtn').style.display='none';document.getElementById('testHeaderBar').style.display='flex';document.getElementById('testDurLabel').textContent=dur+' min';document.getElementById('testMarksLabel').textContent=marks;startTimer(dur*60);renderQuiz(true);}
+  else if(mode==='quiz'){document.getElementById('outTitle').textContent=quizData.length+' Question Quiz';document.getElementById('quizMode').style.display='block';document.getElementById('quizMode').classList.add('on');document.getElementById('shuffleBtn').style.display='none';document.getElementById('testHeaderBar').style.display='none';renderQuiz(false);}
+  else if(mode==='written'){document.getElementById('outTitle').textContent=writtenData.length+' Written Questions';document.getElementById('writtenMode').style.display='block';document.getElementById('writtenMode').classList.add('on');document.getElementById('shuffleBtn').style.display='none';renderWritten();}
+  else if(mode==='speed'){document.getElementById('outTitle').textContent='Speed Round';document.getElementById('speedMode').style.display='block';document.getElementById('speedMode').classList.add('on');document.getElementById('shuffleBtn').style.display='none';startSpeed(extra1);}
+  else if(mode==='spaced'){document.getElementById('outTitle').textContent='Spaced Review';document.getElementById('spacedMode').style.display='block';document.getElementById('spacedMode').classList.add('on');document.getElementById('shuffleBtn').style.display='none';renderSpaced();}
+}
+
+function startTimer(secs){clearInterval(timerInterval);let remaining=secs;const el=document.getElementById('testTimer');timerInterval=setInterval(()=>{remaining--;const m=Math.floor(remaining/60),s=remaining%60;el.textContent=m+':'+(s<10?'0':'')+s;if(remaining<=0){clearInterval(timerInterval);el.textContent='TIME UP';el.style.color='var(--red)';submitQuiz();}},1000);}
+function renderFlashcard(){if(!cards.length)return;const c=cards[curIdx];document.getElementById('fcBadge').textContent=(c.type||'card').toUpperCase();document.getElementById('fcFront').textContent=c.front;document.getElementById('fcBack').textContent=c.back;document.getElementById('fcCount').textContent=(curIdx+1)+' / '+cards.length;document.getElementById('fcFill').style.width=((curIdx+1)/cards.length*100)+'%';document.getElementById('fcKnow').textContent='✓ '+known;document.getElementById('fcRev').textContent='↺ '+review;document.getElementById('theCard').classList.remove('flipped');isFlipped=false;document.getElementById('fcDone').classList.remove('show');document.getElementById('theCard').style.display='';document.querySelectorAll('.fc-btns,.fc-nav').forEach(el=>el.style.display='');}
+function flipCard(){document.getElementById('theCard').classList.toggle('flipped');isFlipped=!isFlipped;}
+function markCard(got){if(got)known++;else review++;navCard(1);}
+function navCard(dir){curIdx+=dir;if(curIdx>=cards.length){document.getElementById('theCard').style.display='none';document.querySelectorAll('.fc-btns,.fc-nav').forEach(el=>el.style.display='none');document.getElementById('fcDone').classList.add('show');document.getElementById('fcSummary').textContent='You knew '+known+' of '+cards.length+' cards. '+review+' to review.';return;}if(curIdx<0)curIdx=0;renderFlashcard();}
+function restartDeck(){curIdx=0;known=0;review=0;renderFlashcard();}
+function shuffleCards(){cards.sort(()=>Math.random()-.5);curIdx=0;known=0;review=0;renderFlashcard();}
+function renderQuiz(isFullTest){
+  const wrap=document.getElementById('quizQuestions');let currentSection=0;
+  wrap.innerHTML=quizData.map((q,i)=>{
+    let sh='';if(isFullTest&&q.section&&q.section!==currentSection){currentSection=q.section;const tl={mcq:'Multiple Choice',tf:'True/False',short:'Short Answer',long:'Long Answer',fill:'Fill in the Blank'}[q.type]||q.type;sh=`<div class="section-divider"><div class="section-divider-label">Section ${q.section}</div><div class="section-divider-line"></div><div class="section-meta">${tl}</div></div>`;}
+    const tagClass={mcq:'tag-mcq',tf:'tag-tf',short:'tag-sa',long:'tag-la',fill:'tag-fb'}[q.type]||'tag-mcq';
+    const tagLabel={mcq:'MCQ',tf:'True/False',short:'Short Ans',long:'Long Ans',fill:'Fill Blank'}[q.type]||q.type;
+    const marks=q.marks?`[${q.marks}m]`:'';
+    let input='';
+    if(q.type==='mcq'){input=`<div class="mcq-opts">${(q.options||[]).map(opt=>`<button class="mcq-opt" onclick="selectMCQ(${i},this,'${opt.replace(/'/g,"\\'")}','${(q.answer||'').replace(/'/g,"\\'")}')"> ${opt}</button>`).join('')}</div>`;}
+    else if(q.type==='tf'){input=`<div class="tf-row"><button class="tf-opt" onclick="selectTF(${i},this,'True','${q.answer}')">True</button><button class="tf-opt" onclick="selectTF(${i},this,'False','${q.answer}')">False</button></div>`;}
+    else if(q.type==='fill'){const parts=(q.question||'').split('_____');input=`<div style="font-size:.93rem;line-height:2">${parts[0]}<input class="fill-blank" id="fill_${i}" type="text" placeholder="..."/>${parts[1]||''}</div>`;}
+    else if(q.type==='short'){input=`<textarea class="written" id="written_${i}" placeholder="Write 2-3 sentences..."></textarea>`;}
+    else if(q.type==='long'){input=`<textarea class="written lg" id="written_${i}" placeholder="Write a detailed answer..."></textarea>`;}
+    return sh+`<div class="qcard" id="qcard_${i}"><div class="qnum"><span>Q${i+1}</span><span>${marks}</span></div><span class="qtag ${tagClass}">${tagLabel}</span><div class="qtext">${q.type!=='fill'?q.question:''}</div>${input}</div>`;
+  }).join('');
+}
+function selectMCQ(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.mcq-opt').forEach(b=>b.disabled=true);btn.classList.add(chosen===correct?'correct':'wrong');if(chosen!==correct){document.getElementById('qcard_'+idx).querySelectorAll('.mcq-opt').forEach(b=>{if(b.textContent.trim()===correct.trim())b.classList.add('correct');});}quizData[idx]._correct=chosen===correct;}
+function selectTF(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.tf-opt').forEach(b=>b.disabled=true);btn.classList.add(chosen===correct?'correct':'wrong');if(chosen!==correct){document.getElementById('qcard_'+idx).querySelectorAll('.tf-opt').forEach(b=>{if(b.textContent.trim()===correct.trim())b.classList.add('correct');});}quizData[idx]._correct=chosen===correct;}
+function submitQuiz(){clearInterval(timerInterval);let correct=0,wrong=0,skipped=0;quizData.forEach((q,i)=>{if(q.type==='fill'){const val=(document.getElementById('fill_'+i)||{}).value||'';q._correct=val.trim().toLowerCase()===(q.answer||'').trim().toLowerCase();if(!val.trim())skipped++;else if(q._correct)correct++;else wrong++;}else if(q.type==='short'||q.type==='long'){skipped++;}else{if(q._correct===undefined)skipped++;else if(q._correct)correct++;else wrong++;}});const scoreable=quizData.filter(q=>q.type!=='short'&&q.type!=='long').length;const pct=scoreable?Math.round(correct/scoreable*100):0;document.getElementById('resScore').textContent=pct+'%';document.getElementById('resLabel').textContent=`${correct} correct out of ${scoreable} auto-graded.`;document.getElementById('resCorrect').textContent=correct;document.getElementById('resWrong').textContent=wrong;document.getElementById('resSkipped').textContent=skipped;document.getElementById('quizResults').classList.add('show');document.getElementById('quizResults').scrollIntoView({behavior:'smooth'});}
+function renderWritten(){document.getElementById('writtenQuestions').innerHTML=writtenData.map((q,i)=>{const isLong=q.type==='long'||q.type==='analytical'||q.type==='opinion';const tag={short:'tag-sa',long:'tag-la',analytical:'tag-la',opinion:'tag-sa'}[q.type]||'tag-sa';const label={short:'Short Answer',long:'Long Answer',analytical:'Analytical',opinion:'Discuss'}[q.type]||q.type;return `<div class="qcard"><div class="qnum"><span>Q${i+1}</span><span>[${q.marks||3}m]</span></div><span class="qtag ${tag}">${label}</span><div class="qtext">${q.question}</div><textarea class="written ${isLong?'lg':''}" id="wq_${i}" placeholder="${isLong?'Write a detailed answer...':'Write 2-3 sentences...'}"></textarea></div>`;}).join('');}
+async function submitWritten(){
+  const answers=writtenData.map((q,i)=>({q:q.question,ideal:q.ideal,user:(document.getElementById('wq_'+i)||{}).value||''}));
+  if(answers.every(a=>!a.user.trim())){alert('Please answer at least one question!');return;}
+  document.getElementById('writtenResults').innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted)">Agent is reviewing your answers...</div>';
+  document.getElementById('writtenResults').classList.add('show');
+  const prompt=`Review these student answers for ${selectedSubject}. Give 1-2 sentence feedback and a score for each.\n${answers.map((a,i)=>`Q${i+1}: ${a.q}\nIdeal: ${a.ideal}\nStudent: ${a.user||'(blank)'}`).join('\n\n')}\nReturn ONLY JSON: [{"q_num":1,"feedback":"...","score":2,"max":3}]`;
+  try{
+    const raw=await callBackend(prompt);
+    const reviews=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    let total=0,maxTotal=0;
+    document.getElementById('writtenResults').innerHTML=reviews.map((r,idx)=>{total+=r.score||0;maxTotal+=r.max||writtenData[idx]?.marks||3;return `<div style="margin-bottom:1.2rem"><div class="w-q">Q${r.q_num}: ${writtenData[r.q_num-1]?.question||''}</div><div class="w-a">${answers[r.q_num-1]?.user||'(not answered)'}</div><div class="w-ideal">✓ ${r.feedback} — Score: ${r.score}/${r.max}</div></div>`;}).join('')+`<div style="text-align:center;margin-top:1.5rem;font-family:'Bebas Neue',sans-serif;font-size:2.5rem;color:var(--accent)">Total: ${total}/${maxTotal}</div>`;
+  }catch(e){document.getElementById('writtenResults').innerHTML='<div style="color:var(--red);padding:1rem">Could not get AI review.</div>';}
+}
+function startSpeed(timeSecs){speedIdx=0;speedScore=0;document.getElementById('speedScore').textContent='0';document.getElementById('speedFeedback').textContent='';renderSpeedQ();let remaining=parseInt(timeSecs)||60;document.getElementById('speedTimer').textContent=remaining;clearInterval(speedTimerInterval);speedTimerInterval=setInterval(()=>{remaining--;document.getElementById('speedTimer').textContent=remaining;if(remaining<=0){clearInterval(speedTimerInterval);endSpeed();}},1000);setTimeout(()=>document.getElementById('speedInput').focus(),200);}
+function renderSpeedQ(){if(speedIdx>=speedData.length){endSpeed();return;}document.getElementById('speedQ').textContent=speedData[speedIdx].q;document.getElementById('speedQNum').textContent=(speedIdx+1);document.getElementById('speedInput').value='';}
+function checkSpeed(){const val=document.getElementById('speedInput').value.trim().toLowerCase();const correct=(speedData[speedIdx]?.a||'').toLowerCase();const fb=document.getElementById('speedFeedback');if(!val)return;if(val===correct||correct.includes(val)||val.includes(correct.split(' ')[0])){speedScore++;document.getElementById('speedScore').textContent=speedScore;fb.textContent='✓ Correct!';fb.className='speed-feedback correct';}else{fb.textContent='✗ Answer: '+speedData[speedIdx].a;fb.className='speed-feedback wrong';}speedIdx++;setTimeout(()=>{fb.textContent='';renderSpeedQ();document.getElementById('speedInput').focus();},800);}
+function skipSpeed(){speedIdx++;renderSpeedQ();document.getElementById('speedInput').focus();}
+function endSpeed(){clearInterval(speedTimerInterval);document.getElementById('speedMode').innerHTML=`<div style="text-align:center;padding:3rem"><div style="font-family:'Bebas Neue',sans-serif;font-size:4rem;color:var(--accent)">${speedScore}</div><div style="color:var(--muted);margin-bottom:1.5rem">out of ${speedData.length} questions</div><button class="gen-btn" style="max-width:240px;margin:0 auto;display:block" onclick="resetAll()">New Mission</button></div>`;}
+function renderSpaced(){const remaining=srDeck.filter(c=>!c.mastered);document.getElementById('srCount').textContent=remaining.length+' remaining';document.getElementById('srFill').style.width=((srDeck.length-remaining.length)/srDeck.length*100)+'%';if(!remaining.length){document.getElementById('srCard').style.display='none';document.querySelectorAll('#spacedMode .fc-btns').forEach(el=>el.style.display='none');document.getElementById('srDone').classList.add('show');document.getElementById('srSummary').textContent='Mission complete! All '+srDeck.length+' cards mastered.';return;}const next=remaining[0];document.getElementById('srBadge').textContent=(next.type||'card').toUpperCase();document.getElementById('srFront').textContent=next.front;document.getElementById('srBack').textContent=next.back;document.getElementById('srCard').classList.remove('flipped');srIdx=srDeck.indexOf(next);}
+function flipSpaced(){document.getElementById('srCard').classList.toggle('flipped');}
+function spacedMark(got){const c=srDeck[srIdx];if(got){c.reps++;c.interval=c.interval?c.interval*2.5:1;if(c.reps>=3)c.mastered=true;c.due=Date.now()+c.interval*60000;}else{c.reps=0;c.interval=0;c.due=Date.now();}renderSpaced();}
+function resetAll(){clearInterval(timerInterval);clearInterval(speedTimerInterval);document.querySelectorAll('.page').forEach(el=>el.classList.remove('show'));document.getElementById('pageNew').classList.add('show');document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));document.getElementById('navNew').classList.add('active');document.getElementById('out').style.display='none';document.getElementById('loading').classList.remove('show');document.getElementById('genBtn').disabled=false;document.getElementById('quizResults').classList.remove('show');document.getElementById('writtenResults').classList.remove('show');document.getElementById('notesInput').value='';document.getElementById('fileName').textContent='';fileText='';cards=[];quizData=[];writtenData=[];speedData=[];srDeck=[];curIdx=0;known=0;review=0;speedIdx=0;speedScore=0;}
+function downloadCards(){let content='AGENTPREP STUDY SET\n'+'='.repeat(40)+'\nSubject: '+selectedSubject+'\n\n';if(cards.length){content+=cards.map((c,i)=>`Card ${i+1} [${(c.type||'').toUpperCase()}]\nFront: ${c.front}\nBack: ${c.back}`).join('\n\n---\n\n');}else if(quizData.length){content+=quizData.map((q,i)=>`Q${i+1} [${q.type?.toUpperCase()}]\n${q.question}\n${(q.options||[]).join('\n')}\nAnswer: ${q.answer||''}`).join('\n\n');}else if(writtenData.length){content+=writtenData.map((q,i)=>`Q${i+1} [${q.marks||3}m]\n${q.question}\n\nAnswer:\n${'_'.repeat(50)}`).join('\n\n');}content+='\n\n⚠️ AI-generated. Verify all answers against your textbook before using for exams.';const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));a.download='agentprep-study-set.txt';a.click();}
+
+window.addEventListener('load',()=>{drawMascot();initAuth();});
+</script>
+</body>
+</html>
