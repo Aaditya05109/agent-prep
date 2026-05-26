@@ -226,6 +226,8 @@ select option{background:var(--card)}
 .mcq-opt{background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.6rem 1rem;font-family:'DM Sans',sans-serif;font-size:.86rem;cursor:pointer;transition:all .18s;text-align:left}
 .mcq-opt:hover:not(:disabled){border-color:var(--accent)}
 .mcq-opt.correct{background:#0f2010;border-color:var(--green);color:var(--green)}
+.mcq-opt.selected-opt{border-color:var(--accent);background:#0d1020;color:var(--accent)}
+.tf-opt.selected-opt{border-color:var(--accent);background:#0d1020;color:var(--accent)}
 .mcq-opt.wrong{background:#200f0f;border-color:var(--red);color:var(--red)}
 .tf-row{display:flex;gap:.7rem}
 .tf-opt{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--white);padding:.6rem;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.86rem;cursor:pointer;transition:all .18s}
@@ -505,7 +507,7 @@ select option{background:var(--card)}
     <div class="test-header-bar" id="testHeaderBar" style="display:none"><div class="test-meta">Duration: <strong id="testDurLabel">60 min</strong> &nbsp;|&nbsp; Marks: <strong id="testMarksLabel">50</strong></div><div class="timer" id="testTimer">60:00</div></div>
     <div id="quizQuestions"></div>
     <div class="quiz-footer"><button class="submit-btn" onclick="submitQuiz()">Submit & See Results</button></div>
-    <div class="results" id="quizResults"><div class="res-score" id="resScore">0%</div><div class="res-label" id="resLabel"></div><div class="res-grid"><div class="res-item"><div class="res-num" id="resCorrect" style="color:var(--green)">0</div><div class="res-sub">Correct</div></div><div class="res-item"><div class="res-num" id="resWrong" style="color:var(--red)">0</div><div class="res-sub">Wrong</div></div><div class="res-item"><div class="res-num" id="resSkipped" style="color:var(--yellow)">0</div><div class="res-sub">Skipped</div></div></div><button class="gen-btn" style="max-width:240px;margin:0 auto;display:block" onclick="resetAll()">New Mission</button></div>
+    <div class="results" id="quizResults"><div class="res-score" id="resScore">0%</div><div class="res-label" id="resLabel"></div><div class="res-grid"><div class="res-item"><div class="res-num" id="resCorrect" style="color:var(--green)">0</div><div class="res-sub">Correct</div></div><div class="res-item"><div class="res-num" id="resWrong" style="color:var(--red)">0</div><div class="res-sub">Wrong</div></div><div class="res-item"><div class="res-num" id="resSkipped" style="color:var(--yellow)">0</div><div class="res-sub">Skipped</div></div></div><div id="aiGradingNote" style="display:none;color:var(--accent);font-size:.78rem;margin-bottom:1rem">Agent is grading written answers...</div><div id="quizReview" style="text-align:left;margin-bottom:1.5rem"></div><button class="gen-btn" style="max-width:240px;margin:0 auto;display:block" onclick="resetAll()">New Mission</button></div>
   </div>
   <div id="writtenMode">
     <div id="writtenQuestions"></div>
@@ -806,7 +808,8 @@ async function generate(){
     const num=document.getElementById('fc-num').value,diff=document.getElementById('fc-diff').value;
     setLoading('Agent is building your flashcards...');
     const prompt=`${subjectCtx} Generate exactly ${num} flashcards at ${diff} difficulty from the academic content below. Use these types (cycle through): ${types.join(', ')}.
-term=front is term back is definition, qa=front is question back is answer, fill=front has _____ back is missing word, tf=front is True or False statement back is answer+explanation, concept=front is concept name back is 2-3 sentence summary.
+term=front is a key term back is a clear precise definition, qa=front is a thought-provoking question back is a complete accurate answer, fill=front is a sentence with ONE _____ gap back is ONLY the missing word or phrase, tf=front is a factual statement phrased as True or False? back is the answer plus a 1 sentence explanation, concept=front is a concept name back is a 2-3 sentence academic summary.
+Make cards specific, accurate and varied. Avoid vague or repetitive questions.
 Return ONLY a valid JSON array: [{"type":"term","front":"...","back":"..."}]
 Content: ${notes.slice(0,4000)}`;
     try{const raw=await callBackend(prompt);cards=JSON.parse(raw.replace(/```json|```/g,'').trim());curIdx=0;known=0;review=0;await saveSession(topicPreview,'flashcards',cards.length,cards);showOutput('flashcards');}
@@ -818,7 +821,8 @@ Content: ${notes.slice(0,4000)}`;
     const secDesc=sections.map((s,i)=>`Section ${i+1}: ${s.count} ${s.type} questions, ${s.marks} mark each`).join('\n');
     const prompt=`${subjectCtx} Generate a full academic test paper at ${diff} difficulty. Duration: ${dur} mins. Total marks: ${totalMarks}.
 Sections:\n${secDesc}
-mcq: 4 options one correct. tf: true/false with explanation. short: 2-3 sentences. long: full paragraph. fill: _____ in sentence.
+mcq: 4 clearly distinct options, one definitively correct. Distractors should be plausible but clearly wrong. tf: a clear factual statement with a brief explanation in the answer. short: expects 2-3 focused sentences covering key points. long: expects a structured paragraph with introduction, key points, and conclusion. fill: one _____ gap per sentence, answer is a specific word or short phrase.
+Make all questions academically rigorous, specific, and unambiguous.
 Return ONLY JSON: [{"section":1,"type":"mcq","question":"...","options":["A)...","B)...","C)...","D)..."],"answer":"A)...","marks":1}]
 Content: ${notes.slice(0,4000)}`;
     try{const raw=await callBackend(prompt);quizData=JSON.parse(raw.replace(/```json|```/g,'').trim());await saveSession(topicPreview,'fulltest',quizData.length,quizData);showOutput('fulltest',dur,totalMarks);}
@@ -908,7 +912,11 @@ function showOutput(mode,extra1,extra2){
 }
 
 function startTimer(secs){clearInterval(timerInterval);let remaining=secs;const el=document.getElementById('testTimer');timerInterval=setInterval(()=>{remaining--;const m=Math.floor(remaining/60),s=remaining%60;el.textContent=m+':'+(s<10?'0':'')+s;if(remaining<=0){clearInterval(timerInterval);el.textContent='TIME UP';el.style.color='var(--red)';submitQuiz();}},1000);}
-function renderFlashcard(){if(!cards.length)return;const c=cards[curIdx];document.getElementById('fcBadge').textContent=(c.type||'card').toUpperCase();document.getElementById('fcFront').textContent=c.front;document.getElementById('fcBack').textContent=c.back;document.getElementById('fcCount').textContent=(curIdx+1)+' / '+cards.length;document.getElementById('fcFill').style.width=((curIdx+1)/cards.length*100)+'%';document.getElementById('fcKnow').textContent='✓ '+known;document.getElementById('fcRev').textContent='↺ '+review;document.getElementById('theCard').classList.remove('flipped');isFlipped=false;document.getElementById('fcDone').classList.remove('show');document.getElementById('theCard').style.display='';document.querySelectorAll('.fc-btns,.fc-nav').forEach(el=>el.style.display='');}
+function renderFlashcard(){if(!cards.length)return;const c=cards[curIdx];document.getElementById('fcBadge').textContent=(c.type||'card').toUpperCase();document.getElementById('fcFront').textContent=c.front;document.getElementById('fcBack').textContent=c.back;document.getElementById('fcCount').textContent=(curIdx+1)+' / '+cards.length;document.getElementById('fcFill').style.width=((curIdx+1)/cards.length*100)+'%';document.getElementById('fcKnow').textContent='✓ '+known;document.getElementById('fcRev').textContent='↺ '+review;document.getElementById('theCard').classList.remove('flipped');isFlipped=false;document.getElementById('fcDone').classList.remove('show');document.getElementById('theCard').style.display='';document.querySelectorAll('.fc-btns,.fc-nav').forEach(el=>el.style.display='');
+  // disable prev on first card
+  const prevBtn=document.querySelector('.fc-nav button:first-child');
+  if(prevBtn){prevBtn.disabled=curIdx===0;prevBtn.style.opacity=curIdx===0?'0.3':'1';prevBtn.style.cursor=curIdx===0?'not-allowed':'pointer';}
+}
 function flipCard(){document.getElementById('theCard').classList.toggle('flipped');isFlipped=!isFlipped;}
 function markCard(got){if(got)known++;else review++;navCard(1);}
 function navCard(dir){curIdx+=dir;if(curIdx>=cards.length){document.getElementById('theCard').style.display='none';document.querySelectorAll('.fc-btns,.fc-nav').forEach(el=>el.style.display='none');document.getElementById('fcDone').classList.add('show');document.getElementById('fcSummary').textContent='You knew '+known+' of '+cards.length+' cards. '+review+' to review.';return;}if(curIdx<0)curIdx=0;renderFlashcard();}
@@ -932,7 +940,100 @@ function renderQuiz(isFullTest){
 }
 function selectMCQ(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.mcq-opt').forEach(b=>b.disabled=true);btn.classList.add(chosen===correct?'correct':'wrong');if(chosen!==correct){document.getElementById('qcard_'+idx).querySelectorAll('.mcq-opt').forEach(b=>{if(b.textContent.trim()===correct.trim())b.classList.add('correct');});}quizData[idx]._correct=chosen===correct;}
 function selectTF(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.tf-opt').forEach(b=>b.disabled=true);btn.classList.add(chosen===correct?'correct':'wrong');if(chosen!==correct){document.getElementById('qcard_'+idx).querySelectorAll('.tf-opt').forEach(b=>{if(b.textContent.trim()===correct.trim())b.classList.add('correct');});}quizData[idx]._correct=chosen===correct;}
-function submitQuiz(){clearInterval(timerInterval);let correct=0,wrong=0,skipped=0;quizData.forEach((q,i)=>{if(q.type==='fill'){const val=(document.getElementById('fill_'+i)||{}).value||'';q._correct=val.trim().toLowerCase()===(q.answer||'').trim().toLowerCase();if(!val.trim())skipped++;else if(q._correct)correct++;else wrong++;}else if(q.type==='short'||q.type==='long'){skipped++;}else{if(q._correct===undefined)skipped++;else if(q._correct)correct++;else wrong++;}});const scoreable=quizData.filter(q=>q.type!=='short'&&q.type!=='long').length;const pct=scoreable?Math.round(correct/scoreable*100):0;document.getElementById('resScore').textContent=pct+'%';document.getElementById('resLabel').textContent=`${correct} correct out of ${scoreable} auto-graded.`;document.getElementById('resCorrect').textContent=correct;document.getElementById('resWrong').textContent=wrong;document.getElementById('resSkipped').textContent=skipped;document.getElementById('quizResults').classList.add('show');document.getElementById('quizResults').scrollIntoView({behavior:'smooth'});}
+async function submitQuiz(){
+  clearInterval(timerInterval);
+  let correct=0,wrong=0,skipped=0,totalMarks=0,earnedMarks=0;
+  const reviewItems=[];
+  for(let i=0;i<quizData.length;i++){
+    const q=quizData[i];
+    const qMarks=q.marks||1;
+    totalMarks+=qMarks;
+    if(q.type==='fill'){
+      const val=(document.getElementById('fill_'+i)||{}).value||'';
+      const isCorrect=val.trim().toLowerCase()===(q.answer||'').trim().toLowerCase();
+      if(!val.trim()){skipped++;reviewItems.push({q,i,status:'skipped',earned:0,userAns:'(not attempted)'});}
+      else if(isCorrect){correct++;earnedMarks+=qMarks;reviewItems.push({q,i,status:'correct',earned:qMarks,userAns:val});}
+      else{wrong++;reviewItems.push({q,i,status:'wrong',earned:0,userAns:val});}
+    } else if(q.type==='mcq'){
+      const userAns=q._userAnswer||'';
+      const correctAns=(q.answer||'').trim();
+      const isCorrect=userAns.trim()===correctAns||userAns.includes(correctAns)||correctAns.includes(userAns);
+      if(!userAns){skipped++;reviewItems.push({q,i,status:'skipped',earned:0,userAns:'(not attempted)'});}
+      else if(isCorrect){correct++;earnedMarks+=qMarks;reviewItems.push({q,i,status:'correct',earned:qMarks,userAns});}
+      else{wrong++;reviewItems.push({q,i,status:'wrong',earned:0,userAns});}
+    } else if(q.type==='tf'){
+      const userAns=q._userAnswer||'';
+      const isCorrect=userAns.toLowerCase()===(q.answer||'').toLowerCase();
+      if(!userAns){skipped++;reviewItems.push({q,i,status:'skipped',earned:0,userAns:'(not attempted)'});}
+      else if(isCorrect){correct++;earnedMarks+=qMarks;reviewItems.push({q,i,status:'correct',earned:qMarks,userAns});}
+      else{wrong++;reviewItems.push({q,i,status:'wrong',earned:0,userAns});}
+    } else if(q.type==='short'||q.type==='long'){
+      const userAns=(document.getElementById('written_'+i)||{}).value||'';
+      if(!userAns.trim()){skipped++;reviewItems.push({q,i,status:'skipped',earned:0,userAns:'(not attempted)'});}
+      else{reviewItems.push({q,i,status:'pending',earned:0,userAns});}
+    }
+  }
+  document.getElementById('quizResults').classList.add('show');
+  document.getElementById('quizResults').scrollIntoView({behavior:'smooth'});
+  renderReview(reviewItems,correct,wrong,skipped,earnedMarks,totalMarks,false);
+  const writtenItems=reviewItems.filter(function(r){return r.status==='pending';});
+  if(writtenItems.length>0){
+    document.getElementById('aiGradingNote').style.display='block';
+    const qLines=writtenItems.map(function(r){
+      return 'Q'+(r.i+1)+' ['+(r.q.marks||3)+' marks]: '+r.q.question+'\nIdeal: '+(r.q.ideal||'(use your judgment)')+'\nStudent answer: '+r.userAns;
+    }).join('\n\n');
+    const prompt='Grade each student answer below. Award partial marks fairly. If the student shows some understanding, give partial credit.\n\n'+qLines+'\n\nReturn ONLY a JSON array like: [{"q_num":1,"score":2,"feedback":"Good understanding of X but missed Y"}]';
+    try{
+      const raw=await callBackend(prompt);
+      const cleaned=raw.replace(/```json/g,'').replace(/```/g,'').trim();
+      const grades=JSON.parse(cleaned);
+      grades.forEach(function(g){
+        const item=reviewItems.find(function(r){return r.i+1===g.q_num;});
+        if(item){
+          item.status=g.score>0?'partial':'wrong';
+          item.earned=g.score||0;
+          item.feedback=g.feedback;
+          earnedMarks+=g.score||0;
+          if(g.score>=(item.q.marks||3))correct++;
+        }
+      });
+    }catch(e){
+      writtenItems.forEach(function(r){r.status='manual';r.feedback='Could not auto-grade. Please review manually.';});
+    }
+    document.getElementById('aiGradingNote').style.display='none';
+    renderReview(reviewItems,correct,wrong,skipped,earnedMarks,totalMarks,true);
+  }
+}
+
+function renderReview(items,correct,wrong,skipped,earned,total,final){
+  const pct=total?Math.round(earned/total*100):0;
+  document.getElementById('resScore').textContent=pct+'%';
+  document.getElementById('resLabel').textContent=earned+' / '+total+' marks';
+  document.getElementById('resCorrect').textContent=correct;
+  document.getElementById('resWrong').textContent=wrong;
+  document.getElementById('resSkipped').textContent=skipped;
+  const reviewEl=document.getElementById('quizReview');
+  if(!reviewEl)return;
+  const statusColors={correct:'var(--green)',wrong:'var(--red)',skipped:'var(--yellow)',partial:'var(--accent)',pending:'var(--muted)',manual:'var(--muted)'};
+  const statusLabels={correct:'Correct',wrong:'Wrong',skipped:'Skipped',partial:'Partial credit',pending:'Grading...',manual:'Review manually'};
+  reviewEl.innerHTML='<div style="font-size:.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:1rem;padding-top:1rem;border-top:1px solid var(--border)">Question by Question Review</div>'+
+  items.map(function(r){
+    const col=statusColors[r.status]||'var(--muted)';
+    const lbl=(r.status==='partial'?'Partial ('+r.earned+'/'+(r.q.marks||1)+'m)':statusLabels[r.status])||r.status;
+    const correctAns=r.q.answer||r.q.ideal||r.q.back||'';
+    return '<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid '+col+';padding:1rem;margin-bottom:.6rem">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:.4rem">'
+      +'<span style="font-size:.72rem;color:var(--muted)">Q'+(r.i+1)+' ['+(r.q.marks||1)+'m]</span>'
+      +'<span style="font-size:.72rem;font-weight:700;color:'+col+'">'+lbl+'</span>'
+      +'</div>'
+      +'<div style="font-size:.88rem;font-weight:500;margin-bottom:.4rem">'+(r.q.question||r.q.front||'')+'</div>'
+      +(r.userAns&&r.userAns!=='(not attempted)'?'<div style="font-size:.78rem;color:var(--muted);margin-bottom:.3rem">Your answer: <span style="color:var(--white)">'+r.userAns+'</span></div>':'')
+      +((r.status==='wrong'||r.status==='partial')&&correctAns?'<div style="font-size:.78rem;color:var(--green)">Correct answer: '+correctAns+'</div>':'')
+      +(r.feedback?'<div style="font-size:.75rem;color:var(--accent);margin-top:.3rem;font-style:italic">'+r.feedback+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
 function renderWritten(){document.getElementById('writtenQuestions').innerHTML=writtenData.map((q,i)=>{const isLong=q.type==='long'||q.type==='analytical'||q.type==='opinion';const tag={short:'tag-sa',long:'tag-la',analytical:'tag-la',opinion:'tag-sa'}[q.type]||'tag-sa';const label={short:'Short Answer',long:'Long Answer',analytical:'Analytical',opinion:'Discuss'}[q.type]||q.type;return `<div class="qcard"><div class="qnum"><span>Q${i+1}</span><span>[${q.marks||3}m]</span></div><span class="qtag ${tag}">${label}</span><div class="qtext">${q.question}</div><textarea class="written ${isLong?'lg':''}" id="wq_${i}" placeholder="${isLong?'Write a detailed answer...':'Write 2-3 sentences...'}"></textarea></div>`;}).join('');}
 async function submitWritten(){
   const answers=writtenData.map((q,i)=>({q:q.question,ideal:q.ideal,user:(document.getElementById('wq_'+i)||{}).value||''}));
