@@ -938,8 +938,8 @@ function renderQuiz(isFullTest){
     return sh+`<div class="qcard" id="qcard_${i}"><div class="qnum"><span>Q${i+1}</span><span>${marks}</span></div><span class="qtag ${tagClass}">${tagLabel}</span><div class="qtext">${q.type!=='fill'?q.question:''}</div>${input}</div>`;
   }).join('');
 }
-function selectMCQ(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.mcq-opt').forEach(b=>b.disabled=true);btn.classList.add(chosen===correct?'correct':'wrong');if(chosen!==correct){document.getElementById('qcard_'+idx).querySelectorAll('.mcq-opt').forEach(b=>{if(b.textContent.trim()===correct.trim())b.classList.add('correct');});}quizData[idx]._correct=chosen===correct;}
-function selectTF(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.tf-opt').forEach(b=>b.disabled=true);btn.classList.add(chosen===correct?'correct':'wrong');if(chosen!==correct){document.getElementById('qcard_'+idx).querySelectorAll('.tf-opt').forEach(b=>{if(b.textContent.trim()===correct.trim())b.classList.add('correct');});}quizData[idx]._correct=chosen===correct;}
+function selectMCQ(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.mcq-opt').forEach(function(b){b.classList.remove('selected-opt');});btn.classList.add('selected-opt');quizData[idx]._userAnswer=btn.textContent.trim();}
+function selectTF(idx,btn,chosen,correct){document.getElementById('qcard_'+idx).querySelectorAll('.tf-opt').forEach(function(b){b.classList.remove('selected-opt');});btn.classList.add('selected-opt');quizData[idx]._userAnswer=chosen;}
 async function submitQuiz(){
   clearInterval(timerInterval);
   let correct=0,wrong=0,skipped=0,totalMarks=0,earnedMarks=0;
